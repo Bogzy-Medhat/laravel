@@ -1,0 +1,22 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Deploy to Backend EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << EOF
+        cd /path/to/laravel/project
+        git pull
+        php artisan migrate --force
+        EOF
