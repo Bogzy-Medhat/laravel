@@ -34,12 +34,14 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << EOF
         cd /home/ubuntu/laravel
         git pull
+        docker stop laravel_container || true
+        docker rm laravel_container || true
+        docker rmi kelompok11/laravel || true
+        docker build -t kelompok11/laravel .
+        docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
         php artisan migrate --force
         php artisan db:seed
         php artisan config:cache
         php artisan route:cache
         php artisan view:cache
-        php artisan migrate --force
-        php artisan db:seed
-        php artisan config:cache
         EOF
