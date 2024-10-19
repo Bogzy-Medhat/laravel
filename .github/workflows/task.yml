@@ -45,7 +45,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i ~/ec2_key.pem ubuntu@${{ secrets.BACKEND_IP }} << 'EOF'
         cd /home/ubuntu/laravel
         git pull
-        # Install dependencies
+        # Install dependencies if not already installed
         if [ ! -d "vendor" ]; then
           composer install --no-interaction --prefer-dist --optimize-autoloader
         fi
@@ -62,11 +62,11 @@ jobs:
         # Run the Docker container
         sudo docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
         # Run Laravel migrations and seeds inside the running container
-        sudo docker exec -it laravel_container php artisan migrate --force
-        sudo docker exec -it laravel_container php artisan db:seed --force
-        sudo docker exec -it laravel_container php artisan config:cache
-        sudo docker exec -it laravel_container php artisan route:cache
-        sudo docker exec -it laravel_container php artisan view:cache
+        sudo docker exec laravel_container php artisan migrate --force
+        sudo docker exec laravel_container php artisan db:seed --force
+        sudo docker exec laravel_container php artisan config:cache
+        sudo docker exec laravel_container php artisan route:cache
+        sudo docker exec laravel_container php artisan view:cache
         EOF
       env:
         BACKEND_IP: ${{ secrets.BACKEND_IP }}
