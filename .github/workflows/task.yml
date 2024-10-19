@@ -13,6 +13,22 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+    - name: Build Docker image
+      run: |
+        docker build -t kelompok11/laravel .
+
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -42,45 +58,31 @@ jobs:
         ssh -i ~/ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << EOF
           echo "Deploying Laravel application"
 
-          # Update package lists
-          sudo apt update
+          # Navigate to the Laravel directory
+          cd /home/ubuntu/laravel || { echo "Directory not found"; exit 1; }
 
-          # Install PHP 8.2 and required extensions
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository ppa:ondrej/php -y
-          sudo apt-get update
-          sudo apt-get install -y php8.2 php8.2-cli php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml php8.2-curl php8.2-bcmath git
+          # Pull the latest changes from the repository
+          git pull
 
-          # Clone the repository if it doesn't exist
-          if [ ! -d "/home/ubuntu/laravel" ]; then
-            git clone https://github.com/Bogzy-Medhat/laravel.git /home/ubuntu/laravel
-          fi
+          # Stop and remove the existing Docker container if it exists
+          docker stop laravel_container || true
+          docker rm laravel_container || true
 
-          cd /home/ubuntu/laravel
+          # Remove the old Docker image if it exists
+          docker rmi kelompok11/laravel || true
 
-          # Pull the latest changes
-          git pull origin master
+          # Build the new Docker image
+          docker build -t kelompok11/laravel .
 
-          # Check if composer is installed, if not install it
-          if ! [ -x "$(command -v composer)" ]; then
-            curl -sS https://getcomposer.org/installer | php
-            sudo mv composer.phar /usr/local/bin/composer
-          fi
+          # Run the new Docker container
+          docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
 
-          # Install Composer dependencies
-          composer install --prefer-dist --no-interaction
-          
-          # Check if the storage and cache directories exist
-          if [ -d "storage" ] && [ -d "bootstrap/cache" ]; then
-            # Set file permissions (adjust according to your server configuration)
-            sudo chown -R www-data:www-data storage
-            sudo chown -R www-data:www-data bootstrap/cache
-
-            # Optionally run migrations
-            php artisan migrate --force
-          else
-            echo "Storage or cache directory does not exist."
-          fi
+          # Run Laravel migrations and seeding
+          php artisan migrate --force
+          php artisan db:seed --force
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
         EOF
       env:
         EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
