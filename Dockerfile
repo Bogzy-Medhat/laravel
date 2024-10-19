@@ -27,7 +27,7 @@ RUN composer self-update --2
 COPY . .
 
 # Install Laravel dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 # Copy the environment file
 COPY .env.example .env
