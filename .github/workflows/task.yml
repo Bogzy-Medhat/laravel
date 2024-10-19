@@ -43,11 +43,9 @@ jobs:
         
     - name: SSH into EC2 and deploy
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }}
+        ssh -o StrictHostKeyChecking=no -i ~/ec2_key.pem ubuntu@${{ secrets.BACKEND_IP }} << 'EOF'
         cd /home/ubuntu/laravel
         git pull
-        # Install dependencies if not using Docker
-        composer install --no-interaction --prefer-dist --optimize-autoloader
         # Check if Docker is installed
         if ! command -v docker &> /dev/null
         then
@@ -69,5 +67,4 @@ jobs:
         php artisan view:cache
         EOF
     env:
-      EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
       BACKEND_IP: ${{ secrets.BACKEND_IP }}
