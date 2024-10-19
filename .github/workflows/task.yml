@@ -48,11 +48,17 @@ jobs:
           # Install PHP and required extensions
           sudo apt-get install -y php php-cli php-fpm php-mysql php-mbstring php-xml php-curl php-bcmath git
 
+          # Clone the repository if it doesn't exist
+          if [ ! -d "/home/ubuntu/laravel" ]; then
+            git clone https://github.com/Bogzy-Medhat/laravel.git /home/ubuntu/laravel
+          fi
           
           cd /home/ubuntu/laravel
+          
+          # Pull the latest changes
           git pull origin master
           
-          # Install Composer globally if not installed
+          # Check if composer is installed, if not install it
           if ! [ -x "$(command -v composer)" ]; then
             curl -sS https://getcomposer.org/installer | php
             sudo mv composer.phar /usr/local/bin/composer
@@ -61,13 +67,18 @@ jobs:
           # Install Composer dependencies
           composer install --prefer-dist --no-interaction
           
-          # Set file permissions (adjust according to your server configuration)
-          sudo chown -R www-data:www-data /home/ubuntu/laravel/storage
-          sudo chown -R www-data:www-data /home/ubuntu/laravel/bootstrap/cache
+          # Check if the storage and cache directories exist
+          if [ -d "storage" ] && [ -d "bootstrap/cache" ]; then
+            # Set file permissions (adjust according to your server configuration)
+            sudo chown -R www-data:www-data storage
+            sudo chown -R www-data:www-data bootstrap/cache
 
-          # Optionally run migrations
-          php artisan migrate --force
+            # Optionally run migrations
+            php artisan migrate --force
+          else
+            echo "Storage or cache directory does not exist."
+          fi
         EOF
       env:
         EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
-        FRONTEND_IP: ${{ secrets.BACKEND_IP }}
+        BACKEND_IP: ${{ secrets.BACKEND_IP }}
