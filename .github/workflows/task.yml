@@ -70,4 +70,4 @@ jobs:
         EOF
     env:
       EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
-      FRONTEND_IP: ${{ secrets.BACKEND_IP }}
+      BACKEND_IP: ${{ secrets.BACKEND_IP }}
