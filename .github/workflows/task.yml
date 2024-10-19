@@ -34,6 +34,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+    - name: Set up SSH
+      run: |
+        echo "${{ secrets.EC2_PRIVATE_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
+        
     - name: SSH into EC2 and deploy
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << 'EOF'
