@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
     - name: Set up SSH
       run: |
         # Save the private key from GitHub secrets to a file
@@ -61,6 +62,16 @@ jobs:
         sudo docker build -t kelompok11/laravel .
         # Run the Docker container
         sudo docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
+        
+        # Check if the container is running and print logs if it isn't
+        if [ "$(sudo docker ps -q -f name=laravel_container)" ]; then
+          echo "Container is running."
+        else
+          echo "Container is not running. Capturing logs..."
+          sudo docker logs laravel_container || true
+          exit 1
+        fi
+        
         # Run Laravel migrations and seeds inside the running container
         sudo docker exec laravel_container php artisan migrate --force
         sudo docker exec laravel_container php artisan db:seed --force
@@ -68,5 +79,5 @@ jobs:
         sudo docker exec laravel_container php artisan route:cache
         sudo docker exec laravel_container php artisan view:cache
         EOF
-      env:
-        BACKEND_IP: ${{ secrets.BACKEND_IP }}
+    env:
+      BACKEND_IP: ${{ secrets.BACKEND_IP }}
