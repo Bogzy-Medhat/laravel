@@ -1,4 +1,4 @@
-name: Backend CI/CD
+name: Laravel CI/CD
 
 on:
   push:
@@ -6,42 +6,68 @@ on:
       - 11.x
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        php-version: '8.0'  # Specify your PHP version here
+        extensions: mbstring, xml, curl, bcmath
 
-    - name: Build Docker image
+    - name: Install Composer Dependencies
       run: |
-        docker build -t kelompok11/laravel .
+        composer install --prefer-dist --no-progress --no-suggest --no-interaction
 
-    - name: Deploy to Backend EC2
+    - name: Build Step
+      run: echo "Building the Laravel application..."
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set up SSH
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << EOF
-        cd /home/ubuntu/laravel
-        git pull
-        docker stop laravel_container || true
-        docker rm laravel_container || true
-        docker rmi kelompok11/laravel || true
-        docker build -t kelompok11/laravel .
-        docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
-        php artisan migrate --force
-        php artisan db:seed
-        php artisan config:cache
-        php artisan route:cache
-        php artisan view:cache
+        # Save the private key from GitHub secrets to a file
+        echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/ec2_key.pem
+        chmod 600 ~/ec2_key.pem
+
+    - name: Deploy Laravel to EC2
+      run: |
+        ssh -i ~/ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << EOF
+          echo "Deploying Laravel application"
+          
+          # Update package lists
+          sudo apt update
+          
+          # Install PHP and required extensions
+          sudo apt-get install -y php php-cli php-fpm php-mysql php-mbstring php-xml php-curl php-bcmath git
+
+          
+          cd /home/ubuntu/laravel
+          git pull origin master
+          
+          # Install Composer globally if not installed
+          if ! [ -x "$(command -v composer)" ]; then
+            curl -sS https://getcomposer.org/installer | php
+            sudo mv composer.phar /usr/local/bin/composer
+          fi
+
+          # Install Composer dependencies
+          composer install --prefer-dist --no-interaction
+          
+          # Set file permissions (adjust according to your server configuration)
+          sudo chown -R www-data:www-data /home/ubuntu/laravel/storage
+          sudo chown -R www-data:www-data /home/ubuntu/laravel/bootstrap/cache
+
+          # Optionally run migrations
+          php artisan migrate --force
         EOF
+      env:
+        EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        FRONTEND_IP: ${{ secrets.BACKEND_IP }}
