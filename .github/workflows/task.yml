@@ -53,12 +53,12 @@ jobs:
             exit 1
         fi
         # Stop and remove existing Docker container if exists
-        docker stop laravel_container || true
-        docker rm laravel_container || true
+        sudo docker stop laravel_container || true
+        sudo docker rm laravel_container || true
         # Build Docker image
-        docker build -t kelompok11/laravel .
+        sudo docker build -t kelompok11/laravel .
         # Run the Docker container
-        docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
+        sudo docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
         # Run Laravel migrations and seeds
         php artisan migrate --force
         php artisan db:seed --force
