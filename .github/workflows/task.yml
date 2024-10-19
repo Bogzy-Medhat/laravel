@@ -43,7 +43,7 @@ jobs:
         
     - name: SSH into EC2 and deploy
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BACKEND_IP }}
         cd /home/ubuntu/laravel
         git pull
         # Install dependencies if not using Docker
