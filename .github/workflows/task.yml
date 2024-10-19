@@ -37,8 +37,9 @@ jobs:
 
     - name: Set up SSH
       run: |
-        echo "${{ secrets.EC2_PRIVATE_KEY }}" > private_key.pem
-        chmod 600 private_key.pem
+        # Save the private key from GitHub secrets to a file
+        echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/ec2_key.pem
+        chmod 600 ~/ec2_key.pem
         
     - name: SSH into EC2 and deploy
       run: |
@@ -67,3 +68,6 @@ jobs:
         php artisan route:cache
         php artisan view:cache
         EOF
+    env:
+      EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+      FRONTEND_IP: ${{ secrets.BACKEND_IP }}
