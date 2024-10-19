@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
     - name: Set up SSH
       run: |
         # Save the private key from GitHub secrets to a file
@@ -46,9 +45,10 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i ~/ec2_key.pem ubuntu@${{ secrets.BACKEND_IP }} << 'EOF'
         cd /home/ubuntu/laravel
         git pull
-         # Install dependencies
-        composer install --no-interaction --prefer-dist --optimize-autoloader
-
+        # Install dependencies
+        if [ ! -d "vendor" ]; then
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+        fi
         # Check if Docker is installed
         if ! command -v docker &> /dev/null; then
               echo "Docker could not be found. Please install Docker."
@@ -61,12 +61,12 @@ jobs:
         sudo docker build -t kelompok11/laravel .
         # Run the Docker container
         sudo docker run -d --name laravel_container -p 8000:8000 kelompok11/laravel
-        # Run Laravel migrations and seeds
-        php artisan migrate --force
-        php artisan db:seed --force
-        php artisan config:cache
-        php artisan route:cache
-        php artisan view:cache
+        # Run Laravel migrations and seeds inside the running container
+        sudo docker exec -it laravel_container php artisan migrate --force
+        sudo docker exec -it laravel_container php artisan db:seed --force
+        sudo docker exec -it laravel_container php artisan config:cache
+        sudo docker exec -it laravel_container php artisan route:cache
+        sudo docker exec -it laravel_container php artisan view:cache
         EOF
-    env:
-      BACKEND_IP: ${{ secrets.BACKEND_IP }}
+      env:
+        BACKEND_IP: ${{ secrets.BACKEND_IP }}
