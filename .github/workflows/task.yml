@@ -46,11 +46,13 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i ~/ec2_key.pem ubuntu@${{ secrets.BACKEND_IP }} << 'EOF'
         cd /home/ubuntu/laravel
         git pull
+         # Install dependencies
+        composer install --no-interaction --prefer-dist --optimize-autoloader
+
         # Check if Docker is installed
-        if ! command -v docker &> /dev/null
-        then
-            echo "Docker could not be found. Please install Docker."
-            exit 1
+        if ! command -v docker &> /dev/null; then
+              echo "Docker could not be found. Please install Docker."
+              exit 1
         fi
         # Stop and remove existing Docker container if exists
         sudo docker stop laravel_container || true
